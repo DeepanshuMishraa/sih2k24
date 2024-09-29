@@ -3,7 +3,7 @@
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Kanit, Rubik } from "next/font/google";
+import { Rubik } from "next/font/google";
 import { ModeToggle } from "./dark-mode-toggle";
 
 const rubik = Rubik({

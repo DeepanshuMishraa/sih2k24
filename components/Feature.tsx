@@ -9,12 +9,6 @@ import {
   Mic,
   Network,
   Scale,
-  Clock,
-  Search,
-  FileText,
-  Briefcase,
-  Users,
-  AlertTriangle
 } from 'lucide-react'
 import Feature from './ui/Features'
 

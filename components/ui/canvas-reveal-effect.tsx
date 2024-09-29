@@ -1,4 +1,5 @@
 "use client";
+
 import { cn } from "@/lib/utils";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import React, { useMemo, useRef } from "react";
@@ -97,19 +98,19 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
           color[1] / 255,
           color[2] / 255,
         ]),
-        type: "uniform3fv",
+        type: "3fv", // Fixed type here
       },
       u_opacities: {
         value: opacities,
-        type: "uniform1fv",
+        type: "1fv",
       },
       u_total_size: {
         value: totalSize,
-        type: "uniform1f",
+        type: "1f",
       },
       u_dot_size: {
         value: dotSize,
-        type: "uniform1f",
+        type: "1f",
       },
     };
   }, [colors, opacities, totalSize, dotSize]);
@@ -146,24 +147,24 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
                 ? "st.y -= abs(floor((mod(u_resolution.y, u_total_size) - u_dot_size) * 0.5));"
                 : ""
             }
-      float opacity = step(0.0, st.x);
-      opacity *= step(0.0, st.y);
+            float opacity = step(0.0, st.x);
+            opacity *= step(0.0, st.y);
 
-      vec2 st2 = vec2(int(st.x / u_total_size), int(st.y / u_total_size));
+            vec2 st2 = vec2(int(st.x / u_total_size), int(st.y / u_total_size));
 
-      float frequency = 5.0;
-      float show_offset = random(st2);
-      float rand = random(st2 * floor((u_time / frequency) + show_offset + frequency) + 1.0);
-      opacity *= u_opacities[int(rand * 10.0)];
-      opacity *= 1.0 - step(u_dot_size / u_total_size, fract(st.x / u_total_size));
-      opacity *= 1.0 - step(u_dot_size / u_total_size, fract(st.y / u_total_size));
+            float frequency = 5.0;
+            float show_offset = random(st2);
+            float rand = random(st2 * floor((u_time / frequency) + show_offset + frequency) + 1.0);
+            opacity *= u_opacities[int(rand * 10.0)];
+            opacity *= 1.0 - step(u_dot_size / u_total_size, fract(st.x / u_total_size));
+            opacity *= 1.0 - step(u_dot_size / u_total_size, fract(st.y / u_total_size));
 
-      vec3 color = u_colors[int(show_offset * 6.0)];
+            vec3 color = u_colors[int(show_offset * 6.0)];
 
-      ${shader}
+            ${shader}
 
-      fragColor = vec4(color, opacity);
-      fragColor.rgb *= fragColor.a;
+            fragColor = vec4(color, opacity);
+            fragColor.rgb *= fragColor.a;
         }`}
       uniforms={uniforms}
       maxFps={60}
@@ -172,12 +173,15 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
 };
 
 type UniformValue = number | number[] | number[][];
-type Uniforms = {
-  [key: string]: {
-    value: UniformValue;
-    type: string;
-  };
-};
+
+type UniformType = "1f" | "3f" | "1fv" | "3fv" | "2f";
+
+interface UniformDefinition {
+  value: UniformValue;
+  type: UniformType;
+}
+
+type Uniforms = Record<string, UniformDefinition>;
 
 const ShaderMaterial = ({
   source,
@@ -204,36 +208,39 @@ const ShaderMaterial = ({
   });
 
   const getUniforms = () => {
-    const preparedUniforms: Record<
-      string,
-      { value: UniformValue | THREE.Vector2 | THREE.Vector3; type?: string }
-    > = {};
+    const preparedUniforms: Record<string, any> = {};
 
-    for (const uniformName in uniforms) {
-      const uniform = uniforms[uniformName];
-
+    for (const [uniformName, uniform] of Object.entries(uniforms)) {
       switch (uniform.type) {
-        case "uniform1f":
-          preparedUniforms[uniformName] = { value: uniform.value, type: "1f" };
+        case "1f":
+          preparedUniforms[uniformName] = {
+            value: uniform.value as number,
+            type: "1f",
+          };
           break;
-        case "uniform3f":
+        case "3f":
           preparedUniforms[uniformName] = {
             value: new THREE.Vector3().fromArray(uniform.value as number[]),
             type: "3f",
           };
           break;
-        case "uniform1fv":
-          preparedUniforms[uniformName] = { value: uniform.value, type: "1fv" };
-          break;
-        case "uniform3fv":
+        case "1fv":
           preparedUniforms[uniformName] = {
-            value: (uniform.value as number[][]).map((v) =>
-              new THREE.Vector3().fromArray(v)
-            ),
+            value: uniform.value as number[],
+            type: "1fv",
+          };
+          break;
+        case "3fv":
+          preparedUniforms[uniformName] = {
+            value: {
+              value: (uniform.value as number[][]).map((v) =>
+                new THREE.Vector3().fromArray(v)
+              ),
+            },
             type: "3fv",
           };
           break;
-        case "uniform2f":
+        case "2f":
           preparedUniforms[uniformName] = {
             value: new THREE.Vector2().fromArray(uniform.value as number[]),
             type: "2f",

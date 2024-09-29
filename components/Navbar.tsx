@@ -30,10 +30,6 @@ export const Appbar = () => {
               <Button>Login</Button>
             </Link>
           )}
-
-          <Link href="http://github.com">
-            <Button>Github</Button>
-          </Link>
         </div>
       </div>
     </div>

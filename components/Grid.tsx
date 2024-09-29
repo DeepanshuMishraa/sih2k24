@@ -84,7 +84,7 @@ const features = [
     description: "Supports 100+ integrations and counting.",
     href: "#",
     cta: "Learn more",
-    className: "col-span-3 lg:col-span-2",
+    className: "col-span-3 lg:col-span-2 h-[400px]",
     background: (
       <AnimatedBeamDemo />
     ),

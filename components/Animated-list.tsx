@@ -13,33 +13,39 @@ interface Item {
 
 let notifications = [
   {
-    name: "Payment received",
-    description: "Magic UI",
+    name: "New case law added",
+    description: "Commercial Contract Disputes",
     time: "15m ago",
-
-    icon: "💸",
+    icon: "⚖️",
     color: "#00C9A7",
   },
   {
-    name: "User signed up",
-    description: "Magic UI",
+    name: "Search query completed",
+    description: "Merger & Acquisition Precedents",
     time: "10m ago",
-    icon: "👤",
+    icon: "🔍",
     color: "#FFB800",
   },
   {
-    name: "New message",
-    description: "Magic UI",
+    name: "Legal brief generated",
+    description: "Intellectual Property Case",
     time: "5m ago",
-    icon: "💬",
+    icon: "📄",
     color: "#FF3D71",
   },
   {
-    name: "New event",
-    description: "Magic UI",
+    name: "Regulatory update",
+    description: "Financial Services Sector",
     time: "2m ago",
-    icon: "🗞️",
+    icon: "📊",
     color: "#1E86FF",
+  },
+  {
+    name: "Saved research",
+    description: "International Trade Law",
+    time: "1m ago",
+    icon: "🔖",
+    color: "#8A4FFF",
   },
 ];
 

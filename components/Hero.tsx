@@ -4,7 +4,7 @@ import Link from "next/link"
 
 export default function HeroSection() {
   return (
-    <section className="w-full py-12 md:py-28 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
+    <section className="w-full py-12 md:py-32 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
       <div className="container px-4 md:px-6 mx-auto max-w-6xl">
         <div className="text-center space-y-8">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-gray-900 dark:text-white">
@@ -20,7 +20,7 @@ export default function HeroSection() {
             <FeatureItem icon={<Sparkles className="h-6 w-6" />} text="Predictive Analytics" />
           </div>
           <div className="pt-8">
-            <Link href="/demo">
+            <Link href="/dashboard">
               <Button className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium py-5 px-8 rounded-md text-lg">
                 Experience the Future of Legal Tech
               </Button>

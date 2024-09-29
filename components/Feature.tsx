@@ -65,41 +65,10 @@ export default function FeaturesSection() {
       title: 'Semantic Search',
       description: 'Context-aware search for more relevant results.'
     },
-    // Dummy features start here
-    {
-      icon: Clock,
-      title: 'Real-time Updates',
-      description: 'Stay informed with instant notifications on case developments.'
-    },
-    {
-      icon: Search,
-      title: 'Advanced Citation Analysis',
-      description: 'Automatically identify and validate legal citations in documents.'
-    },
-    {
-      icon: FileText,
-      title: 'Automated Document Generation',
-      description: 'Create legal documents using AI-powered templates and insights.'
-    },
-    {
-      icon: Briefcase,
-      title: 'Case Portfolio Management',
-      description: 'Organize and track multiple cases with ease and efficiency.'
-    },
-    {
-      icon: Users,
-      title: 'Collaborative Workspaces',
-      description: 'Enable secure, real-time collaboration among legal teams.'
-    },
-    {
-      icon: AlertTriangle,
-      title: 'Risk Assessment Tool',
-      description: 'Evaluate potential legal risks and compliance issues proactively.'
-    }
   ]
 
   return (
-    <section className="py-12 bg-background">
+    <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-12">
           Key Features of AI-Driven Research Engine

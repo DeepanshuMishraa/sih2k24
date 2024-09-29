@@ -202,7 +202,7 @@ const ShaderMaterial = ({
       return;
     }
     lastFrameTime = timestamp;
-
+    //@ts-ignore
     const material: any = ref.current.material;
     const timeLocation = material.uniforms.u_time;
     timeLocation.value = timestamp;

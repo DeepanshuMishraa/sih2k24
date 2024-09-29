@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id                String  @id @default(cuid())
+  name              String  // Required, obtained via Google auth
+  email             String  @unique // Required, obtained via Google auth
+  createdAt         DateTime @default(now()) // Automatically set when user is created
+
+  // Optional fields to be filled later on the dashboard
+  lawFirm           String? // Optional, law firm name
+  barAssociationId  String? // Optional, unique ID from the bar association
+  specialization    String? // Optional, area of law specialization
+  phoneNumber       String? // Optional, lawyer's phone number
+  profileCompleted  Boolean @default(false) // To track if the profile is completed
+}
+

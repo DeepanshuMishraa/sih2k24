@@ -62,7 +62,7 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
   center = ["x", "y"],
 }) => {
   const uniforms = useMemo(() => {
-    let colorsArray = [
+    let colorsArray: number[][] = [
       colors[0],
       colors[0],
       colors[0],
@@ -171,19 +171,20 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
   );
 };
 
+type UniformValue = number | number[] | number[][];
 type Uniforms = {
   [key: string]: {
-    value: number[] | number[][] | number;
+    value: UniformValue;
     type: string;
   };
 };
+
 const ShaderMaterial = ({
   source,
   uniforms,
   maxFps = 60,
 }: {
   source: string;
-  hovered?: boolean;
   maxFps?: number;
   uniforms: Uniforms;
 }) => {
@@ -198,16 +199,15 @@ const ShaderMaterial = ({
       return;
     }
     lastFrameTime = timestamp;
-    const material: any = ref.current?.material;
-    const timeLocation = material.uniforms.u_time;
-    timeLocation.value = timestamp;
+    const material = ref.current.material as THREE.ShaderMaterial;
+    material.uniforms.u_time.value = timestamp;
   });
 
   const getUniforms = () => {
-    const preparedUniforms: any = {};
+    const preparedUniforms: Record<string, any> = {};
 
     for (const uniformName in uniforms) {
-      const uniform: any = uniforms[uniformName];
+      const uniform = uniforms[uniformName];
 
       switch (uniform.type) {
         case "uniform1f":
@@ -215,7 +215,7 @@ const ShaderMaterial = ({
           break;
         case "uniform3f":
           preparedUniforms[uniformName] = {
-            value: new THREE.Vector3().fromArray(uniform.value),
+            value: new THREE.Vector3().fromArray(uniform.value as number[]),
             type: "3f",
           };
           break;
@@ -224,7 +224,7 @@ const ShaderMaterial = ({
           break;
         case "uniform3fv":
           preparedUniforms[uniformName] = {
-            value: uniform.value.map((v: number[]) =>
+            value: (uniform.value as number[][]).map((v) =>
               new THREE.Vector3().fromArray(v)
             ),
             type: "3fv",
@@ -232,7 +232,7 @@ const ShaderMaterial = ({
           break;
         case "uniform2f":
           preparedUniforms[uniformName] = {
-            value: new THREE.Vector2().fromArray(uniform.value),
+            value: new THREE.Vector2().fromArray(uniform.value as number[]),
             type: "2f",
           };
           break;
@@ -250,50 +250,35 @@ const ShaderMaterial = ({
   };
 
   const material = useMemo(() => {
-    const materialObject = new THREE.ShaderMaterial({
-      vertexShader: `
-      precision mediump float;
-      in vec2 coordinates;
-      uniform vec2 u_resolution;
-      out vec2 fragCoord;
-      void main(){
-        float x = position.x;
-        float y = position.y;
-        gl_Position = vec4(x, y, 0.0, 1.0);
-        fragCoord = vec2(x * u_resolution.x * 0.5 + u_resolution.x * 0.5, y * u_resolution.y * 0.5 + u_resolution.y * 0.5);
-      }
-      `,
+    return new THREE.ShaderMaterial({
       fragmentShader: source,
       uniforms: getUniforms(),
       transparent: true,
     });
-
-    return materialObject;
-  }, [source]);
+  }, [source, uniforms]);
 
   return (
     <mesh ref={ref}>
-      <planeGeometry attach="geometry" args={[2, 2]} />
+      <planeGeometry args={[size.width * 2, size.height * 2]} />
       <primitive attach="material" object={material} />
     </mesh>
   );
 };
 
-export const Shader = ({
+const Shader = ({
   source,
   uniforms,
-  maxFps = 60,
+  maxFps,
 }: {
   source: string;
   uniforms: Uniforms;
   maxFps?: number;
 }) => {
   return (
-    <Canvas
-      className="h-full w-full absolute top-0 left-0"
-      gl={{ alpha: true }}
-    >
+    <Canvas gl={{ alpha: true }}>
       <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
     </Canvas>
   );
 };
+
+export default CanvasRevealEffect;

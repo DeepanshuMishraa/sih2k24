@@ -12,10 +12,6 @@ export const CanvasRevealEffect = ({
   dotSize,
   showGradient = true,
 }: {
-  /**
-   * 0.1 - slower
-   * 1.0 - faster
-   */
   animationSpeed?: number;
   opacities?: number[];
   colors?: number[][];
@@ -65,7 +61,7 @@ const DotMatrix: React.FC<DotMatrixProps> = ({
   shader = "",
   center = ["x", "y"],
 }) => {
-  const uniforms = React.useMemo(() => {
+  const uniforms = useMemo(() => {
     let colorsArray = [
       colors[0],
       colors[0],
@@ -192,7 +188,7 @@ const ShaderMaterial = ({
   uniforms: Uniforms;
 }) => {
   const { size } = useThree();
-  const ref = useRef<THREE.Mesh>();
+  const ref = useRef<THREE.Mesh>(null);
   let lastFrameTime = 0;
 
   useFrame(({ clock }) => {
@@ -202,8 +198,7 @@ const ShaderMaterial = ({
       return;
     }
     lastFrameTime = timestamp;
-    //@ts-ignore
-    const material: any = ref.current.material;
+    const material: any = ref.current?.material;
     const timeLocation = material.uniforms.u_time;
     timeLocation.value = timestamp;
   });
@@ -250,11 +245,10 @@ const ShaderMaterial = ({
     preparedUniforms["u_time"] = { value: 0, type: "1f" };
     preparedUniforms["u_resolution"] = {
       value: new THREE.Vector2(size.width * 2, size.height * 2),
-    }; // Initialize u_resolution
+    };
     return preparedUniforms;
   };
 
-  // Shader material
   const material = useMemo(() => {
     const materialObject = new THREE.ShaderMaterial({
       vertexShader: `
@@ -266,43 +260,40 @@ const ShaderMaterial = ({
         float x = position.x;
         float y = position.y;
         gl_Position = vec4(x, y, 0.0, 1.0);
-        fragCoord = (position.xy + vec2(1.0)) * 0.5 * u_resolution;
-        fragCoord.y = u_resolution.y - fragCoord.y;
+        fragCoord = vec2(x * u_resolution.x * 0.5 + u_resolution.x * 0.5, y * u_resolution.y * 0.5 + u_resolution.y * 0.5);
       }
       `,
       fragmentShader: source,
       uniforms: getUniforms(),
-      glslVersion: THREE.GLSL3,
-      blending: THREE.CustomBlending,
-      blendSrc: THREE.SrcAlphaFactor,
-      blendDst: THREE.OneFactor,
+      transparent: true,
     });
 
     return materialObject;
-  }, [size.width, size.height, source]);
+  }, [source]);
 
   return (
-    <mesh ref={ref as any}>
-      <planeGeometry args={[2, 2]} />
-      <primitive object={material} attach="material" />
+    <mesh ref={ref}>
+      <planeGeometry attach="geometry" args={[2, 2]} />
+      <primitive attach="material" object={material} />
     </mesh>
   );
 };
 
-const Shader: React.FC<ShaderProps> = ({ source, uniforms, maxFps = 60 }) => {
+export const Shader = ({
+  source,
+  uniforms,
+  maxFps = 60,
+}: {
+  source: string;
+  uniforms: Uniforms;
+  maxFps?: number;
+}) => {
   return (
-    <Canvas className="absolute inset-0  h-full w-full">
+    <Canvas
+      className="h-full w-full absolute top-0 left-0"
+      gl={{ alpha: true }}
+    >
       <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
     </Canvas>
   );
 };
-interface ShaderProps {
-  source: string;
-  uniforms: {
-    [key: string]: {
-      value: number[] | number[][] | number;
-      type: string;
-    };
-  };
-  maxFps?: number;
-}

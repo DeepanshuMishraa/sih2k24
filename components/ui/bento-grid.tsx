@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, ElementType } from "react";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ const BentoGrid = ({
     <div
       className={cn(
         "grid w-full auto-rows-[22rem] grid-cols-3 gap-4",
-        className,
+        className
       )}
     >
       {children}
@@ -35,8 +35,7 @@ const BentoCard = ({
   name: string;
   className: string;
   background: ReactNode;
-  //@ts-ignore
-  Icon: any;
+  Icon: ElementType; // Updated the type for Icon
   description: string;
   href: string;
   cta: string;

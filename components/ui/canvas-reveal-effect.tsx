@@ -1,186 +1,299 @@
 "use client";
-
-import { RefObject, useEffect, useId, useState } from "react";
-import { motion } from "framer-motion";
-
 import { cn } from "@/lib/utils";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import React, { useMemo, useRef } from "react";
+import * as THREE from "three";
 
-export interface AnimatedBeamProps {
-  className?: string;
-  containerRef: RefObject<HTMLElement>; // Container ref
-  fromRef: RefObject<HTMLElement>;
-  toRef: RefObject<HTMLElement>;
-  curvature?: number;
-  reverse?: boolean;
-  pathColor?: string;
-  pathWidth?: number;
-  pathOpacity?: number;
-  gradientStartColor?: string;
-  gradientStopColor?: string;
-  delay?: number;
-  duration?: number;
-  startXOffset?: number;
-  startYOffset?: number;
-  endXOffset?: number;
-  endYOffset?: number;
+export const CanvasRevealEffect = ({
+  animationSpeed = 0.4,
+  opacities = [0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.8, 0.8, 0.8, 1],
+  colors = [[0, 255, 255]],
+  containerClassName,
+  dotSize,
+  showGradient = true,
+}: {
+  animationSpeed?: number;
+  opacities?: number[];
+  colors?: number[][];
+  containerClassName?: string;
+  dotSize?: number;
+  showGradient?: boolean;
+}) => {
+  return (
+    <div className={cn("h-full relative bg-white w-full", containerClassName)}>
+      <div className="h-full w-full">
+        <DotMatrix
+          colors={colors ?? [[0, 255, 255]]}
+          dotSize={dotSize ?? 3}
+          opacities={
+            opacities ?? [0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.8, 0.8, 0.8, 1]
+          }
+          shader={`
+              float animation_speed_factor = ${animationSpeed.toFixed(1)};
+              float intro_offset = distance(u_resolution / 2.0 / u_total_size, st2) * 0.01 + (random(st2) * 0.15);
+              opacity *= step(intro_offset, u_time * animation_speed_factor);
+              opacity *= clamp((1.0 - step(intro_offset + 0.1, u_time * animation_speed_factor)) * 1.25, 1.0, 1.25);
+            `}
+          center={["x", "y"]}
+        />
+      </div>
+      {showGradient && (
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 to-[84%]" />
+      )}
+    </div>
+  );
+};
+
+interface DotMatrixProps {
+  colors?: number[][];
+  opacities?: number[];
+  totalSize?: number;
+  dotSize?: number;
+  shader?: string;
+  center?: ("x" | "y")[];
 }
 
-export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
-  className,
-  containerRef,
-  fromRef,
-  toRef,
-  curvature = 0,
-  reverse = false, // Include the reverse prop
-  duration = Math.random() * 3 + 4,
-  delay = 0,
-  pathColor = "gray",
-  pathWidth = 2,
-  pathOpacity = 0.2,
-  gradientStartColor = "#ffaa40",
-  gradientStopColor = "#9c40ff",
-  startXOffset = 0,
-  startYOffset = 0,
-  endXOffset = 0,
-  endYOffset = 0,
+const DotMatrix: React.FC<DotMatrixProps> = ({
+  colors = [[0, 0, 0]],
+  opacities = [0.04, 0.04, 0.04, 0.04, 0.04, 0.08, 0.08, 0.08, 0.08, 0.14],
+  totalSize = 4,
+  dotSize = 2,
+  shader = "",
+  center = ["x", "y"],
 }) => {
-  const id = useId();
-  const [pathD, setPathD] = useState("");
-  const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
-
-  // Calculate the gradient coordinates based on the reverse prop
-  const gradientCoordinates = reverse
-    ? {
-        x1: ["90%", "-10%"],
-        x2: ["100%", "0%"],
-        y1: ["0%", "0%"],
-        y2: ["0%", "0%"],
-      }
-    : {
-        x1: ["10%", "110%"],
-        x2: ["0%", "100%"],
-        y1: ["0%", "0%"],
-        y2: ["0%", "0%"],
-      };
-
-  useEffect(() => {
-    const updatePath = () => {
-      if (containerRef.current && fromRef.current && toRef.current) {
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const rectA = fromRef.current.getBoundingClientRect();
-        const rectB = toRef.current.getBoundingClientRect();
-
-        const svgWidth = containerRect.width;
-        const svgHeight = containerRect.height;
-        setSvgDimensions({ width: svgWidth, height: svgHeight });
-
-        const startX =
-          rectA.left - containerRect.left + rectA.width / 2 + startXOffset;
-        const startY =
-          rectA.top - containerRect.top + rectA.height / 2 + startYOffset;
-        const endX =
-          rectB.left - containerRect.left + rectB.width / 2 + endXOffset;
-        const endY =
-          rectB.top - containerRect.top + rectB.height / 2 + endYOffset;
-
-        const controlY = startY - curvature;
-        const d = `M ${startX},${startY} Q ${
-          (startX + endX) / 2
-        },${controlY} ${endX},${endY}`;
-        setPathD(d);
-      }
-    };
-
-    // Initialize ResizeObserver
-    const resizeObserver = new ResizeObserver(() => {
-      // Recalculate the path on container resize
-      updatePath();
-    });
-
-    // Observe the container element
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
+  const uniforms = useMemo(() => {
+    let colorsArray = [
+      colors[0],
+      colors[0],
+      colors[0],
+      colors[0],
+      colors[0],
+      colors[0],
+    ];
+    if (colors.length === 2) {
+      colorsArray = [
+        colors[0],
+        colors[0],
+        colors[0],
+        colors[1],
+        colors[1],
+        colors[1],
+      ];
+    } else if (colors.length === 3) {
+      colorsArray = [
+        colors[0],
+        colors[0],
+        colors[1],
+        colors[1],
+        colors[2],
+        colors[2],
+      ];
     }
 
-    // Call the updatePath initially to set the initial path
-    updatePath();
-
-    // Clean up the observer on component unmount
-    return () => {
-      resizeObserver.disconnect();
+    return {
+      u_colors: {
+        value: colorsArray.map((color) => [
+          color[0] / 255,
+          color[1] / 255,
+          color[2] / 255,
+        ]),
+        type: "uniform3fv",
+      },
+      u_opacities: {
+        value: opacities,
+        type: "uniform1fv",
+      },
+      u_total_size: {
+        value: totalSize,
+        type: "uniform1f",
+      },
+      u_dot_size: {
+        value: dotSize,
+        type: "uniform1f",
+      },
     };
-  }, [
-    containerRef,
-    fromRef,
-    toRef,
-    curvature,
-    startXOffset,
-    startYOffset,
-    endXOffset,
-    endYOffset,
-  ]);
+  }, [colors, opacities, totalSize, dotSize]);
 
   return (
-    <svg
-      fill="none"
-      width={svgDimensions.width}
-      height={svgDimensions.height}
-      xmlns="http://www.w3.org/2000/svg"
-      className={cn(
-        "pointer-events-none absolute left-0 top-0 transform-gpu stroke-2",
-        className
-      )}
-      viewBox={`0 0 ${svgDimensions.width} ${svgDimensions.height}`}
+    <Shader
+      source={`
+        precision mediump float;
+        in vec2 fragCoord;
+
+        uniform float u_time;
+        uniform float u_opacities[10];
+        uniform vec3 u_colors[6];
+        uniform float u_total_size;
+        uniform float u_dot_size;
+        uniform vec2 u_resolution;
+        out vec4 fragColor;
+        float PHI = 1.61803398874989484820459;
+        float random(vec2 xy) {
+            return fract(tan(distance(xy * PHI, xy) * 0.5) * xy.x);
+        }
+        float map(float value, float min1, float max1, float min2, float max2) {
+            return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+        }
+        void main() {
+            vec2 st = fragCoord.xy;
+            ${
+              center.includes("x")
+                ? "st.x -= abs(floor((mod(u_resolution.x, u_total_size) - u_dot_size) * 0.5));"
+                : ""
+            }
+            ${
+              center.includes("y")
+                ? "st.y -= abs(floor((mod(u_resolution.y, u_total_size) - u_dot_size) * 0.5));"
+                : ""
+            }
+      float opacity = step(0.0, st.x);
+      opacity *= step(0.0, st.y);
+
+      vec2 st2 = vec2(int(st.x / u_total_size), int(st.y / u_total_size));
+
+      float frequency = 5.0;
+      float show_offset = random(st2);
+      float rand = random(st2 * floor((u_time / frequency) + show_offset + frequency) + 1.0);
+      opacity *= u_opacities[int(rand * 10.0)];
+      opacity *= 1.0 - step(u_dot_size / u_total_size, fract(st.x / u_total_size));
+      opacity *= 1.0 - step(u_dot_size / u_total_size, fract(st.y / u_total_size));
+
+      vec3 color = u_colors[int(show_offset * 6.0)];
+
+      ${shader}
+
+      fragColor = vec4(color, opacity);
+      fragColor.rgb *= fragColor.a;
+        }`}
+      uniforms={uniforms}
+      maxFps={60}
+    />
+  );
+};
+
+type Uniforms = {
+  [key: string]: {
+    value: number[] | number[][] | number;
+    type: string;
+  };
+};
+const ShaderMaterial = ({
+  source,
+  uniforms,
+  maxFps = 60,
+}: {
+  source: string;
+  hovered?: boolean;
+  maxFps?: number;
+  uniforms: Uniforms;
+}) => {
+  const { size } = useThree();
+  const ref = useRef<THREE.Mesh>(null);
+  let lastFrameTime = 0;
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const timestamp = clock.getElapsedTime();
+    if (timestamp - lastFrameTime < 1 / maxFps) {
+      return;
+    }
+    lastFrameTime = timestamp;
+    const material: any = ref.current?.material;
+    const timeLocation = material.uniforms.u_time;
+    timeLocation.value = timestamp;
+  });
+
+  const getUniforms = () => {
+    const preparedUniforms: any = {};
+
+    for (const uniformName in uniforms) {
+      const uniform: any = uniforms[uniformName];
+
+      switch (uniform.type) {
+        case "uniform1f":
+          preparedUniforms[uniformName] = { value: uniform.value, type: "1f" };
+          break;
+        case "uniform3f":
+          preparedUniforms[uniformName] = {
+            value: new THREE.Vector3().fromArray(uniform.value),
+            type: "3f",
+          };
+          break;
+        case "uniform1fv":
+          preparedUniforms[uniformName] = { value: uniform.value, type: "1fv" };
+          break;
+        case "uniform3fv":
+          preparedUniforms[uniformName] = {
+            value: uniform.value.map((v: number[]) =>
+              new THREE.Vector3().fromArray(v)
+            ),
+            type: "3fv",
+          };
+          break;
+        case "uniform2f":
+          preparedUniforms[uniformName] = {
+            value: new THREE.Vector2().fromArray(uniform.value),
+            type: "2f",
+          };
+          break;
+        default:
+          console.error(`Invalid uniform type for '${uniformName}'.`);
+          break;
+      }
+    }
+
+    preparedUniforms["u_time"] = { value: 0, type: "1f" };
+    preparedUniforms["u_resolution"] = {
+      value: new THREE.Vector2(size.width * 2, size.height * 2),
+    };
+    return preparedUniforms;
+  };
+
+  const material = useMemo(() => {
+    const materialObject = new THREE.ShaderMaterial({
+      vertexShader: `
+      precision mediump float;
+      in vec2 coordinates;
+      uniform vec2 u_resolution;
+      out vec2 fragCoord;
+      void main(){
+        float x = position.x;
+        float y = position.y;
+        gl_Position = vec4(x, y, 0.0, 1.0);
+        fragCoord = vec2(x * u_resolution.x * 0.5 + u_resolution.x * 0.5, y * u_resolution.y * 0.5 + u_resolution.y * 0.5);
+      }
+      `,
+      fragmentShader: source,
+      uniforms: getUniforms(),
+      transparent: true,
+    });
+
+    return materialObject;
+  }, [source]);
+
+  return (
+    <mesh ref={ref}>
+      <planeGeometry attach="geometry" args={[2, 2]} />
+      <primitive attach="material" object={material} />
+    </mesh>
+  );
+};
+
+export const Shader = ({
+  source,
+  uniforms,
+  maxFps = 60,
+}: {
+  source: string;
+  uniforms: Uniforms;
+  maxFps?: number;
+}) => {
+  return (
+    <Canvas
+      className="h-full w-full absolute top-0 left-0"
+      gl={{ alpha: true }}
     >
-      <path
-        d={pathD}
-        stroke={pathColor}
-        strokeWidth={pathWidth}
-        strokeOpacity={pathOpacity}
-        strokeLinecap="round"
-      />
-      <path
-        d={pathD}
-        strokeWidth={pathWidth}
-        stroke={`url(#${id})`}
-        strokeOpacity="1"
-        strokeLinecap="round"
-      />
-      <defs>
-        <motion.linearGradient
-          className="transform-gpu"
-          id={id}
-          gradientUnits={"userSpaceOnUse"}
-          initial={{
-            x1: "0%",
-            x2: "0%",
-            y1: "0%",
-            y2: "0%",
-          }}
-          animate={{
-            x1: gradientCoordinates.x1,
-            x2: gradientCoordinates.x2,
-            y1: gradientCoordinates.y1,
-            y2: gradientCoordinates.y2,
-          }}
-          transition={{
-            delay,
-            duration,
-            ease: [0.16, 1, 0.3, 1], // https://easings.net/#easeOutExpo
-            repeat: Infinity,
-            repeatDelay: 0,
-          }}
-        >
-          <stop stopColor={gradientStartColor} stopOpacity="0"></stop>
-          <stop stopColor={gradientStartColor}></stop>
-          <stop offset="32.5%" stopColor={gradientStopColor}></stop>
-          <stop
-            offset="100%"
-            stopColor={gradientStopColor}
-            stopOpacity="0"
-          ></stop>
-        </motion.linearGradient>
-      </defs>
-    </svg>
+      <ShaderMaterial source={source} uniforms={uniforms} maxFps={maxFps} />
+    </Canvas>
   );
 };

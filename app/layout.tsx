@@ -38,7 +38,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Provider>
-            <Appbar/>
             {children}
             </Provider>
         </ThemeProvider>
